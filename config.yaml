@@ -1,0 +1,280 @@
+# =====================================================================
+#  Джарвис Лайт — настройки. Файл в UTF-8. После правки перезапусти ассистента.
+#  Лайт-версия: без ИИ (без Ollama и языковых моделей), распознавание речи на процессоре.
+#  Изменения из окна «Настройки» сохраняются в settings.local.yaml
+#  (он накладывается поверх этого файла).
+# =====================================================================
+
+config_version: 1            # версия схемы настроек
+
+assistant:
+  name: "Джарвис"            # имя = слово-активатор. Поменяй тут — варианты/падежи сгенерируются сами
+  extra_wake_words: ["jarvis", "джарвиз", "жарвис", "джервис", "джарвес"]   # доп. варианты распознавания
+  user_name: "Флоки"
+  mode: "wake"               # wake — по имени; ptt — по горячей клавише (push-to-talk)
+  wake_reply: "Слушаю"       # ответ, если сказали только имя
+  greet_on_start: true
+  greeting: "{hello}, мистер {user_name}, чего желаете?"   # {hello} = «Добрый день»
+  greeting_time_of_day: false   # true: «Доброе утро / Добрый день / Добрый вечер / Доброй ночи» по времени
+  # Строгий режим по имени: без «Джарвис» всё игнорируется. «Джарвис» -> «Слушаю» -> одна просьба -> ответ -> снова сплю.
+  # «Джарвис, <команда>» одной фразой выполняется сразу, без «Слушаю».
+  follow_up_seconds: 0       # после ответа N секунд слушать без имени (0 — выкл., по умолчанию)
+  noname:                    # 1.0.8: короткие команды без «Джарвис» (пауза, назад, нажми энтер, открой ютуб…)
+    enabled: true            # только целая короткая фраза-команда, уверенно распознанная; выполняется молча
+    groups: {media: true, youtube: true, nav: true, browser: true, windows: true, explorer: true, keys: true,
+             dictation: true, apps: true, music: true, smarthome: true}
+  request_timeout_s: 6       # после «Слушаю» жду начала просьбы N секунд, потом молча засыпаю
+  request_silence_ms: 1200   # пауза, после которой просьба считается законченной
+  max_request_s: 15          # самая длинная просьба
+  ack_after_s: 2.5           # если ответ готовится дольше — коротко сказать «Секунду» (0 — никогда)
+  tts_tail_ms: 500           # пока Джарвис говорит (и ещё столько после) микрофон не слушает — не слышит сам себя
+
+stt:                         # распознавание речи faster-whisper
+  model: "small"             # tiny / base / small / medium / large-v3 (больше = точнее, но медленнее)
+  device: "cpu"              # Лайт: всегда процессор (видеокарта не используется)
+  compute_type: "int8"       # int8 — быстро и мало памяти
+  cpu_threads: 0             # потоков для распознавания; 0 = из пресета «Нагрузка» (обычная 4, минимальная 2)
+  language: "ru"
+  beam_size: 1
+  download_root: "models/whisper"
+  initial_prompt: ""         # подсказка Whisper; пусто: имя передаётся как hotword (фразы-подсказки Whisper «слышал» в шуме)
+  vad_filter: true           # Silero VAD перед распознаванием: тишина и шум не превращаются в «привет»/«спасибо»
+  # Whisper запускается только на фразах, которые пропустил детектор речи (audio.vad), и только если звук достаточно
+  # громкий — в тишине Джарвис Лайт процессор почти не трогает.
+
+audio:
+  input_device: null         # null = по умолчанию; номер или часть названия (см. run.bat --list-devices)
+  output_device: null
+  vad: "webrtc"              # webrtc / energy
+  vad_aggressiveness: 2      # 0..3: выше = строже отсекает шум
+  energy_threshold: 0.015
+  silence_ms: 500            # пауза, после которой фраза считается законченной (1.0.8: было 800 — команды на 0,3 с быстрее)
+  min_speech_ms: 250
+  max_utterance_s: 15
+
+tts:
+  engine: "piper"            # piper / pyttsx3 / none
+  piper_voice: "ru_RU-denis-medium"   # мужские: ru_RU-denis-medium, ru_RU-dmitri-medium, ru_RU-ruslan-medium; женский: ru_RU-irina-medium
+  voices_dir: "voices"
+  length_scale: 1.1          # >1 медленнее, <1 быстрее (1.1 — спокойная подача в стиле J.A.R.V.I.S.)
+  volume: 1.0
+  pitch_semitones: 0.0       # высота голоса, полутона (-6..+6); отрицательные = ниже, «бархатнее»
+  fx:                        # лёгкая обработка голоса «ИИ из Железного человека» (без клонирования голосов)
+    enabled: true
+    intensity: 0.35          # 0..1: фильтр, компрессия, лёгкий металлик/хорус и короткий ревербератор
+  pyttsx3_voice: ""          # запасной голос Windows (SAPI), часть имени, напр. "Pavel"
+  speak_in_text_mode: true
+
+gui:
+  enabled: true
+  always_on_top: false
+  start_minimized: false
+  close_to_tray: true        # крестик = свернуть в трей
+  hotkey_show: "ctrl+alt+j"  # показать/скрыть окно
+  hotkey_ptt: "ctrl+alt+space"   # удерживать — говорить (в любом режиме)
+  hotkey_game: "ctrl+alt+g"  # удерживать — вопрос по текущей игре
+  hotkey_mic: "ctrl+alt+m"   # пауза микрофона (приватность): вкл/выкл
+  hotkey_stop: "ctrl+alt+x"  # остановить: Джарвис замолкает и бросает обдумывание ответа
+  # fps: 15                 # частота анимации лица; по умолчанию из пресета (15, в минимальной 10), скрытое окно не рисуется
+  width: 460
+  height: 780
+  opacity: 1.0               # прозрачность окна 0.3..1
+  color: "#5cf2b0"           # цвет голограммы (мятный — отличие Лайт-версии)
+  subtitles: true            # показывать журнал/субтитры
+  animations: "lite"         # full / lite (по умолчанию, экономно) / off (статичная картинка)
+  # Лайт: простое 2D-лицо без WebGL/3D, без камеры и без своих фото.
+
+autostart:
+  enabled: true              # install.bat кладёт ярлык в автозагрузку; переключатель в трее и голосом
+
+tools:                       # базовые команды
+  enabled: true
+  allow_open_websites: true
+  search_url: "https://www.google.com/search?q={query}"
+  websites:
+    гугл: "https://www.google.com"
+    яндекс: "https://ya.ru"
+    википедию: "https://ru.wikipedia.org"
+    вконтакте: "https://vk.com"
+    гитхаб: "https://github.com"
+    почту: "https://mail.google.com"
+    карты: "https://www.google.com/maps"
+  apps:                      # явный белый список (плюс всё из меню Пуск — см. apps)
+    блокнот: "notepad.exe"
+    калькулятор: "calc.exe"
+    paint: "mspaint.exe"
+    проводник: "explorer.exe"
+    диспетчер задач: "taskmgr.exe"
+
+apps:                        # игры (Steam/Epic) и любые программы из меню Пуск / рабочего стола
+  enabled: true
+  min_score: 0.72            # строгость нечёткого поиска (0..1). Псевдонимы — в aliases.yaml
+
+media:                       # YouTube / YouTube Music (как приложения Chrome)
+  enabled: true
+  chrome_path: ""            # пусто = найти автоматически
+  youtube_app: {app_id: "", profile_directory: "", shortcut: ""}   # пусто = взять из ярлыка «Chrome Apps\YouTube.lnk»
+  ytmusic_app: {app_id: "", profile_directory: "", shortcut: ""}
+
+notes:
+  enabled: true
+  dir: ""                    # пусто = %LOCALAPPDATA%\JarvisLite\Notes
+  open_in_notepad: false
+
+planner:
+  enabled: true
+  dir: ""                    # пусто = %LOCALAPPDATA%\JarvisLite (planner.sqlite3)
+  morning_summary_time: "09:00"   # пусто = без утренней сводки
+
+timers: {enabled: true}
+system: {enabled: true}      # громкость, блокировка, сон/перезагрузка/выключение (с подтверждением), скриншот, статус ПК
+calc: {enabled: true}
+clipboard: {enabled: true}   # «прочитай буфер», «переведи буфер» (откроет Google Переводчик), «прочитай текст на экране»
+smalltalk:                   # офлайн-болталка без ИИ: шутки, факты, «как дела» (заготовленные фразы, без повторов)
+  enabled: true
+  suggest: true              # не понял команду — предложить похожую («Может, «закрой хром»?»)
+
+weather:
+  enabled: true
+  city: "Сумы"
+  latitude: 50.9077
+  longitude: 34.7981
+  timezone: "Europe/Kyiv"
+
+web_search:                  # «найди в интернете …», «новости»: короткая выдержка вслух, ссылки — в окне
+  enabled: true
+  backend: "duckduckgo"      # duckduckgo / searxng
+  searxng_url: ""            # напр. http://localhost:8080
+  region: "ru-ru"
+  max_results: 5
+  fetch_pages: 2             # Лайт: страницы скачиваются, только если в выдержках поиска нет ответа (0 = никогда)
+  timeout_s: 8
+  cache_minutes: 15
+
+memory:                      # «запомни, что …», «что ты обо мне знаешь», «забудь …» (поиск по словам)
+  enabled: true
+  dir: ""
+  top_k: 5
+
+screen:                      # «прочитай текст на экране» (нужна бесплатная программа Tesseract OCR, rus+eng)
+  tesseract_path: ""         # пусто = искать в PATH и в C:\Program Files\Tesseract-OCR
+
+game:                        # вопросы по игре — ответ из интернета (гайды)
+  enabled: true
+
+windows:                     # «закрой ютуб / окно / это», «сверни», «разверни» — по заголовку окна, с проверкой
+  enabled: true
+  # «закрой» без названия закрывает активное окно, но НИКОГДА не игры (библиотеки Steam/Epic/GOG/Riot…, известные
+  # игры, полноэкранные окна без рамки, игровой режим). Сюда — что ещё не закрывать: exe или слово из заголовка.
+  never_close: []            # например: ["obs64.exe", "Ableton"]
+
+explorer:                    # проводник: «открой второй файл / третью папку / второе», «назад», «вверх»
+  enabled: true
+
+nav:                         # «назад», «вперёд», «назад три раза», «перемотай назад на 30 секунд» (YouTube / YT Music)
+  enabled: true
+
+keys:                        # эмуляция клавиш: «нажми энтер», «нажми контрол цэ», «нажми вниз три раза», «нажми эф пять»
+  enabled: true
+
+hotkeys:                     # голосовые горячие клавиши из jarvis/commands.yaml (+ %LOCALAPPDATA%\JarvisLite\commands.yaml)
+  enabled: true
+
+smarthome:
+  enabled: true
+  devices_file: "devices.yaml"
+  timeout_s: 5
+
+telegram:
+  enabled: false             # включи после настройки (см. README)
+  api_id: 0                  # с https://my.telegram.org -> API development tools
+  api_hash: ""
+  notify_new_messages: false # озвучивать новые сообщения сразу (по умолчанию выкл.)
+  notify_whitelist: []       # только от этих чатов/людей
+  mark_read: false
+  max_chats: 5
+  per_chat: 3
+
+dictate:                     # диктовка в любое активное окно: «Джарвис, диктовка» ... «стоп диктовка»
+  enabled: true
+  hotkey: "ctrl+alt+d"       # горячая клавиша вкл/выкл диктовки
+
+monitor:                     # температура ПК и предупреждения о перегреве
+  enabled: true
+  interval_s: 30
+  gpu_temp_warn: 83
+  cpu_temp_warn: 90
+  cooldown_min: 10           # не повторять предупреждение чаще
+  lhm_url: "http://localhost:8085/data.json"   # LibreHardwareMonitor -> Options -> Remote Web Server
+  wmi_fallback: true
+
+alerts:                      # воздушные тревоги (говорит ВСЕГДА, даже в ночном/игровом режиме)
+  enabled: true
+  backend: "auto"            # auto: alerts.in.ua (если задан токен) → siren.pp.ua → ubilling.net.ua (запасной, по области)
+                             # или явно siren / ubilling / alerts_in_ua — остальные всё равно остаются запасными
+  oblast: "Сумська область"
+  raions: []                 # пусто = вся область; напр. ["Сумський район"] — только свой район
+  interval_s: 20
+  announce_on_start: true    # если при запуске уже тревога — сказать
+  alerts_in_ua_token: ""     # лучше задать в Настройках (хранится зашифрованно); получить: https://alerts.in.ua/api-request
+
+profiles:                    # режимы: work (обычный), game (игровой), night (ночной)
+  enabled: true
+  default: "work"
+  auto_game_mode: true       # сам включать игровой режим, когда запущена полноэкранная игра / игра Steam
+  night_volume: 0.45
+  game_reminders_voice: true # в игровом режиме напоминания вслух (false — только уведомление)
+  game_notifications: false  # второстепенные уведомления в игре
+  night_reminders_voice: false   # ночью напоминания только уведомлением
+  night_notifications: false
+  night_schedule: {enabled: false, start: "23:00", end: "07:00"}   # ночной режим по расписанию
+
+audio_devices:               # «переключи на наушники / колонки»
+  enabled: true
+  aliases:                   # что говоришь -> часть имени устройства в Windows
+    наушники: "Headphones"
+    колонки: "Speakers"
+    динамики: "Speakers"
+
+files:                       # «найди файл отчёт»
+  enabled: true
+  use_windows_search: true   # индекс поиска Windows (быстро)
+  roots: ["~/Desktop", "~/Documents", "~/Downloads", "~/Pictures", "~/Videos", "D:/"]
+  max_index: 300000
+
+load:                        # Нагрузка на компьютер (Настройки → Нагрузка)
+  preset: balanced           # balanced — обычная (по умолчанию): распознавание в 4 потока, лицо 15 кадров/с, приоритет
+                             # ниже обычного; light — минимальная (2 потока, 10 кадров/с) для слабого ПК или рядом с игрой;
+                             # max — максимальная скорость распознавания (все ядра, обычный приоритет)
+  log_every_s: 300           # строка «Ресурсы: …» в jarvis.log раз в 5 минут
+
+diagnostics:                 # «Джарвис, проверь себя»; быстрая тихая проверка при запуске
+  enabled: true
+  check_on_start: true       # сообщать только о проблемах
+
+backup:                      # ежедневный бэкап заметок, задач, памяти и настроек
+  enabled: true
+  dir: ""                    # пусто = %LOCALAPPDATA%\JarvisLite\Backups
+  keep: 10                   # хранить последних N
+  every_days: 1
+  include_telegram: false    # сессия Telegram = ключ входа, по умолчанию не бэкапится
+
+sync:                        # синхронизация между ПК через общую папку (Google Drive / OneDrive / Dropbox / сеть / флешка)
+  folder: ""                 # пусто = выкл.; выбирается в Настройках → Бэкап и синхронизация
+  device_name: ""            # имя этого ПК (пусто = имя компьютера)
+  auto_on_start: false
+  auto_on_exit: false
+  interval_min: 0            # 0 = только вручную
+
+update:
+  github_repo: "kravakos13/jarvis-lite"   # owner/repo с релизами (asset JarvisLiteSetup.exe, тег vX.Y.Z); пусто = выкл.
+  check_on_start: true       # проверять при запуске (в фоне, не чаще раза в сутки), обновление только с твоего согласия
+  skip_version: ""           # «Пропустить эту версию»
+
+vram:                        # игровой режим
+  release_in_game: true
+  whisper_in_game: "cpu"     # cpu — оставить распознавание как есть / unload — выгрузить Whisper (освободит ~0,5 ГБ RAM)
+
+logging:
+  level: "INFO"
+  file: "logs/jarvis.log"
